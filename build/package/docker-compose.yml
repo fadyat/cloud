@@ -1,0 +1,11 @@
+version: '3.7'
+
+services:
+  mongo:
+    container_name: cloud-mongo
+    image: mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - ./data:/data/db
+    restart: always
