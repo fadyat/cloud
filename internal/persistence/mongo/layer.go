@@ -21,7 +21,7 @@ type DBLayer struct {
 	client *mongo.Client
 }
 
-func NewDBLayer(connection string) (*DBLayer, error) {
+func NewLayer(connection string) (*DBLayer, error) {
 	var clientOptions = options.Client().ApplyURI(connection)
 	client, err := mongo.Connect(context.TODO(), clientOptions)
 	if err != nil {
@@ -33,7 +33,7 @@ func NewDBLayer(connection string) (*DBLayer, error) {
 	}, nil
 }
 
-func (db *DBLayer) CreateEvent(event persistence.Event) ([]byte, error) {
+func (db *DBLayer) CreateEvent(event *persistence.Event) ([]byte, error) {
 	s, err := db.client.StartSession()
 	defer s.EndSession(context.Background())
 	if err != nil {
@@ -52,7 +52,12 @@ func (db *DBLayer) CreateEvent(event persistence.Event) ([]byte, error) {
 	return eventID[:], nil
 }
 
-func (db *DBLayer) FindEvent(id []byte) (*persistence.Event, error) {
+func (db *DBLayer) FindEvent(id string) (*persistence.Event, error) {
+	eventID, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return nil, err
+	}
+
 	s, err := db.client.StartSession()
 	defer s.EndSession(context.Background())
 	if err != nil {
@@ -62,7 +67,7 @@ func (db *DBLayer) FindEvent(id []byte) (*persistence.Event, error) {
 	var event persistence.Event
 	err = db.client.Database(dbName).
 		Collection(eventsCollection).
-		FindOne(context.Background(), bson.M{"_id": id}).
+		FindOne(context.Background(), bson.M{"_id": eventID}).
 		Decode(&event)
 
 	if err != nil {

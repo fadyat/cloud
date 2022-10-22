@@ -1,7 +1,6 @@
 package rest
 
 import (
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"github.com/fadyat/cloud/internal/persistence"
@@ -10,36 +9,41 @@ import (
 	"strings"
 )
 
-type EventServiceHandler struct {
-	dbHandler persistence.DatabaseHandler
+type EventService struct {
+	db persistence.DatabaseHandler
 }
 
-func NewEventHandler(dh persistence.DatabaseHandler) *EventServiceHandler {
-	return &EventServiceHandler{
-		dbHandler: dh,
+func NewEventHandler(dh persistence.DatabaseHandler) *EventService {
+	return &EventService{
+		db: dh,
 	}
 }
 
-func (eh *EventServiceHandler) GetAllEvents(w http.ResponseWriter, r *http.Request) {
-	events, err := eh.dbHandler.FindAll()
-	w.Header().Set("Content-Type", "application/json")
+func (es *EventService) GetAllEvents(w http.ResponseWriter, _ *http.Request) {
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 
+	events, err := es.db.FindAll()
+	encoder := json.NewEncoder(w)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprintf(w, `{"error": "%s"}`, err)
+		_ = encoder.Encode(&persistence.ErrorResponse{
+			Error: err.Error(),
+		})
 		return
 	}
 
-	err = json.NewEncoder(w).Encode(events)
+	err = encoder.Encode(events)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprintf(w, `{"error": "%s"}`, err)
+		_ = encoder.Encode(&persistence.ErrorResponse{
+			Error: err.Error(),
+		})
 		return
 	}
 }
 
-func (eh *EventServiceHandler) GetEvent(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
+func (es *EventService) GetEvent(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	vars := mux.Vars(r)
 	criteria, value := vars["criteria"], vars["value"]
 
@@ -47,49 +51,55 @@ func (eh *EventServiceHandler) GetEvent(w http.ResponseWriter, r *http.Request) 
 	var err error
 	switch strings.ToLower(criteria) {
 	case "id":
-		id, e := hex.DecodeString(value)
-		fmt.Printf("id: %s, err: %v\n", id, err)
-		if e == nil {
-			event, err = eh.dbHandler.FindEvent(id)
-			fmt.Printf("event: %v, err: %v\n", event, err)
-		}
+		event, err = es.db.FindEvent(value)
 	case "name":
-		event, err = eh.dbHandler.FindEventByName(value)
+		event, err = es.db.FindEventByName(value)
 	default:
 		event, err = nil, fmt.Errorf("invalid criteria: %s", criteria)
 	}
 
+	encoder := json.NewEncoder(w)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprintf(w, `{"error": "%s"}`, err)
+		w.WriteHeader(http.StatusNotFound)
+		_ = encoder.Encode(&persistence.ErrorResponse{
+			Error: err.Error(),
+		})
 		return
 	}
 
 	err = json.NewEncoder(w).Encode(event)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprintf(w, `{"error": "%s"}`, err)
+		_ = encoder.Encode(&persistence.ErrorResponse{
+			Error: err.Error(),
+		})
 		return
 	}
 }
 
-func (eh *EventServiceHandler) CreateEvent(w http.ResponseWriter, r *http.Request) {
-	event := persistence.Event{}
-	w.Header().Set("Content-Type", "application/json")
-	err := json.NewDecoder(r.Body).Decode(&event)
+func (es *EventService) CreateEvent(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+
+	event := &persistence.Event{}
+	err := json.NewDecoder(r.Body).Decode(event)
+	encoder := json.NewEncoder(w)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprintf(w, `{"error": "%s"}`, err)
+		_ = encoder.Encode(&persistence.ErrorResponse{
+			Error: err.Error(),
+		})
 		return
 	}
 
-	id, err := eh.dbHandler.CreateEvent(event)
+	id, err := es.db.CreateEvent(event)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprintf(w, `{"error": "%s"}`, err)
+		_ = encoder.Encode(&persistence.ErrorResponse{
+			Error: err.Error(),
+		})
 		return
 	}
 
 	w.WriteHeader(http.StatusCreated)
-	fmt.Fprintf(w, `{"id": "%s"}`, id)
+	_, _ = fmt.Fprintf(w, `{"id": "%x"}`, id)
 }

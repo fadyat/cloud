@@ -28,3 +28,7 @@ type Hall struct {
 	Location string `json:"location,omitempty"`
 	Capacity int    `json:"capacity"`
 }
+
+type ErrorResponse struct {
+	Error string `json:"error"`
+}

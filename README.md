@@ -17,3 +17,4 @@
 
 - Project structure is changed to follow the standard go project layout
 - [MongoDB package from book](https://github.com/go-mgo/mgo) is deprecated and replaced with [the official MongoDB driver](https://www.mongodb.com/docs/drivers/go/current/quick-start/)
+- Access to configuration of changed from `flag` to [envconfig](https://github.com/kelseyhightower/envconfig) and [godotenv](https://github.com/joho/godotenv)
