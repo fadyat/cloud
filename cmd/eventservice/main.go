@@ -8,7 +8,7 @@ import (
 
 func main() {
 	log.Println("Starting the event service...")
-	mongoLayer, err := mongo.NewDBLayer("mongodb://localhost:27017,localhost:27018")
+	mongoLayer, err := mongo.NewDBLayer("mongodb://localhost:27017")
 	if err != nil {
 		log.Fatal("Could not connect to database layer: ", err)
 	} else {

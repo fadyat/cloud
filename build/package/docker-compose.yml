@@ -13,19 +13,6 @@ services:
       - mongo-second
     networks:
       - mongo-cluster
-    entrypoint: [ "/usr/bin/mongod", "--replSet", "rs0", "--bind_ip_all" ]
-
-  mongo-second:
-    container_name: mongo-second-replica
-    image: mongo:4.4.14
-    ports:
-      - "27018:27017"
-    volumes:
-      - ./data:/data/mongo
-    restart: always
-    networks:
-      - mongo-cluster
-    entrypoint: [ "/usr/bin/mongod", "--replSet", "rs0", "--bind_ip_all" ]
 
 
 networks:

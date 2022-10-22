@@ -2,8 +2,9 @@ package mongo
 
 import (
 	"context"
-	"fmt"
 	"github.com/fadyat/cloud/internal/persistence"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -24,35 +25,23 @@ func NewDBLayer(connection string) (*DBLayer, error) {
 	}, nil
 }
 
-func (db *DBLayer) AddEvent(event persistence.Event) ([]byte, error) {
+func (db *DBLayer) CreateEvent(event persistence.Event) ([]byte, error) {
 	s, err := db.client.StartSession()
-	fmt.Println("Started session")
-	if err != nil {
-		return nil, err
-	}
 	defer s.EndSession(context.Background())
-
-	insert := func(sc mongo.SessionContext) (interface{}, error) {
-		result, e := db.client.Database("cloud").
-			Collection("events").
-			InsertOne(sc, event)
-
-		fmt.Printf("Inserted event: %+v, %+v\n", result, err)
-
-		if e != nil {
-			return nil, e
-		}
-
-		return result.InsertedID, nil
-	}
-
-	id, err := s.WithTransaction(context.Background(), insert)
-	fmt.Printf("Transaction event: %+v, %+v\n", id, err)
 	if err != nil {
 		return nil, err
 	}
 
-	return id.([]byte), nil
+	result, err := db.client.Database("db").
+		Collection("events").
+		InsertOne(context.Background(), event)
+
+	if err != nil {
+		return nil, err
+	}
+
+	id := result.InsertedID.(primitive.ObjectID)
+	return id[:], nil
 }
 
 func (db *DBLayer) FindEvent(id []byte) (persistence.Event, error) {
@@ -63,6 +52,25 @@ func (db *DBLayer) FindEventByName(name string) (persistence.Event, error) {
 	panic("implement me")
 }
 
-func (db *DBLayer) FindAllAvailableEvents() ([]persistence.Event, error) {
-	panic("implement me")
+func (db *DBLayer) FindAll() ([]persistence.Event, error) {
+	s, err := db.client.StartSession()
+	defer s.EndSession(context.Background())
+	if err != nil {
+		return nil, err
+	}
+
+	cursor, err := db.client.Database("db").
+		Collection("events").
+		Find(context.Background(), bson.D{})
+
+	if err != nil {
+		return nil, err
+	}
+
+	var events []persistence.Event
+	if err := cursor.All(context.Background(), &events); err != nil {
+		return nil, err
+	}
+
+	return events, nil
 }
