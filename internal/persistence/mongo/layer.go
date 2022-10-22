@@ -9,6 +9,14 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
+const (
+	// dbName is the name of the database
+	dbName = "db"
+
+	// eventsCollection is the name of the events collection
+	eventsCollection = "events"
+)
+
 type DBLayer struct {
 	client *mongo.Client
 }
@@ -32,24 +40,56 @@ func (db *DBLayer) CreateEvent(event persistence.Event) ([]byte, error) {
 		return nil, err
 	}
 
-	result, err := db.client.Database("db").
-		Collection("events").
+	result, err := db.client.Database(dbName).
+		Collection(eventsCollection).
 		InsertOne(context.Background(), event)
 
 	if err != nil {
 		return nil, err
 	}
 
-	id := result.InsertedID.(primitive.ObjectID)
-	return id[:], nil
+	eventID := result.InsertedID.(primitive.ObjectID)
+	return eventID[:], nil
 }
 
-func (db *DBLayer) FindEvent(id []byte) (persistence.Event, error) {
-	panic("implement me")
+func (db *DBLayer) FindEvent(id []byte) (*persistence.Event, error) {
+	s, err := db.client.StartSession()
+	defer s.EndSession(context.Background())
+	if err != nil {
+		return nil, err
+	}
+
+	var event persistence.Event
+	err = db.client.Database(dbName).
+		Collection(eventsCollection).
+		FindOne(context.Background(), bson.M{"_id": id}).
+		Decode(&event)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &event, nil
 }
 
-func (db *DBLayer) FindEventByName(name string) (persistence.Event, error) {
-	panic("implement me")
+func (db *DBLayer) FindEventByName(name string) (*persistence.Event, error) {
+	s, err := db.client.StartSession()
+	defer s.EndSession(context.Background())
+	if err != nil {
+		return nil, err
+	}
+
+	var event persistence.Event
+	err = db.client.Database(dbName).
+		Collection(eventsCollection).
+		FindOne(context.Background(), bson.M{"name": name}).
+		Decode(&event)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &event, nil
 }
 
 func (db *DBLayer) FindAll() ([]persistence.Event, error) {
@@ -59,8 +99,8 @@ func (db *DBLayer) FindAll() ([]persistence.Event, error) {
 		return nil, err
 	}
 
-	cursor, err := db.client.Database("db").
-		Collection("events").
+	cursor, err := db.client.Database(dbName).
+		Collection(eventsCollection).
 		Find(context.Background(), bson.D{})
 
 	if err != nil {

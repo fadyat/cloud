@@ -9,8 +9,6 @@ services:
     volumes:
       - ./data:/data/mongo
     restart: always
-    links:
-      - mongo-second
     networks:
       - mongo-cluster
 

@@ -5,7 +5,7 @@ import (
 )
 
 type Event struct {
-	ID        primitive.ObjectID `bson:"_id,omitempty"`
+	ID        primitive.ObjectID `bson:"_id,omitempty" json:"id,omitempty"`
 	Name      string             `json:"name"`
 	Duration  int                `json:"duration"`
 	StartDate int64              `json:"start_date"`
@@ -14,13 +14,13 @@ type Event struct {
 }
 
 type Location struct {
-	ID        primitive.ObjectID `bson:"_id,omitempty"`
-	Name      string
-	Address   string
-	Country   string
-	OpenTime  int
-	CloseTime int
-	Halls     []Hall
+	ID        primitive.ObjectID `bson:"_id,omitempty" json:"id,omitempty"`
+	Name      string             `json:"name"`
+	Address   string             `json:"address"`
+	Country   string             `json:"country"`
+	OpenTime  int                `json:"open_time"`
+	CloseTime int                `json:"close_time"`
+	Halls     []Hall             `json:"halls"`
 }
 
 type Hall struct {
