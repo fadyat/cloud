@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  mongo-first:
+    container_name: mongo-first-replica
+    image: mongo:4.4.14
+    ports:
+      - "27017:27017"
+    volumes:
+      - ./data:/data/mongo
+    restart: always
+    networks:
+      - mongo-cluster
+
+
+networks:
+  mongo-cluster:
+    driver: bridge
