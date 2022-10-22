@@ -5,4 +5,4 @@ events:
 	go run cmd/eventservice/main.go
 
 mongo:
-	docker-compose --project-directory ./build/package up -d mongo
+	docker-compose --project-directory ./build/package up

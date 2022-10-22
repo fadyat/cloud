@@ -1,11 +1,33 @@
-version: '3.7'
+version: '3.8'
 
 services:
-  mongo:
-    container_name: cloud-mongo
-    image: mongo
+  mongo-first:
+    container_name: mongo-first-replica
+    image: mongo:4.4.14
     ports:
       - "27017:27017"
     volumes:
-      - ./data:/data/db
+      - ./data:/data/mongo
     restart: always
+    links:
+      - mongo-second
+    networks:
+      - mongo-cluster
+    entrypoint: [ "/usr/bin/mongod", "--replSet", "rs0", "--bind_ip_all" ]
+
+  mongo-second:
+    container_name: mongo-second-replica
+    image: mongo:4.4.14
+    ports:
+      - "27018:27017"
+    volumes:
+      - ./data:/data/mongo
+    restart: always
+    networks:
+      - mongo-cluster
+    entrypoint: [ "/usr/bin/mongod", "--replSet", "rs0", "--bind_ip_all" ]
+
+
+networks:
+  mongo-cluster:
+    driver: bridge
