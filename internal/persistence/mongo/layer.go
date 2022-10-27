@@ -21,6 +21,10 @@ type DBLayer struct {
 	client *mongo.Client
 }
 
+func (db *DBLayer) Close() error {
+	return db.client.Disconnect(context.Background())
+}
+
 func NewLayer(connection string) (*DBLayer, error) {
 	var clientOptions = options.Client().ApplyURI(connection)
 	client, err := mongo.Connect(context.TODO(), clientOptions)

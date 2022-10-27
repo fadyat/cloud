@@ -6,4 +6,5 @@ type DatabaseHandler interface {
 	FindEvent(id string) (*Event, error)
 	FindEventByName(name string) (*Event, error)
 	FindAll() ([]Event, error)
+	Close() error
 }
