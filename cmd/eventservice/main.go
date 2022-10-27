@@ -9,9 +9,10 @@ import (
 )
 
 var cfg struct {
-	RestAPIAddress     string          `envconfig:"REST_API_ADDRESS" default:":8080"`
-	DatabaseConnection string          `envconfig:"DB_URI"`
-	DatabaseType       db.DatabaseType `envconfig:"DB_TYPE"`
+	RestAPIAddressHTTP  string          `envconfig:"REST_API_ADDRESS_HTTP" default:":80"`
+	RestAPIAddressHTTPS string          `envconfig:"REST_API_ADDRESS_HTTPS" default:":443"`
+	DatabaseConnection  string          `envconfig:"DB_URI"`
+	DatabaseType        db.DatabaseType `envconfig:"DB_TYPE"`
 }
 
 func main() {
@@ -20,16 +21,38 @@ func main() {
 	}
 
 	if err := envconfig.Process("", &cfg); err != nil {
-		log.Fatal(err)
+		log.Panic(err)
 	}
 
 	log.Println("[INFO] Starting the event service...")
 	dbLayer, err := db.NewLayer(cfg.DatabaseType, cfg.DatabaseConnection)
+	defer func() {
+		log.Println("[DEBUG] Closing the database connection...")
+		if e := dbLayer.Close(); e != nil {
+			log.Panic("[ERROR] Error closing the database connection: ", err)
+		}
+	}()
+
 	if err != nil {
-		log.Fatal("[ERROR] Could not connect to database layer: ", err)
+		log.Panic("[ERROR] Could not connect to database layer: ", err)
 	} else {
 		log.Println("[DEBUG] Connected to database layer.")
 	}
 
-	log.Fatal(rest.ServeAPI(cfg.RestAPIAddress, dbLayer))
+	httpErrChan, httpsErrChan := rest.ServeAPI(cfg.RestAPIAddressHTTP, cfg.RestAPIAddressHTTPS, dbLayer)
+	defer func() {
+		log.Println("[DEBUG] Stopping the http event service...")
+		close(httpErrChan)
+	}()
+	defer func() {
+		log.Println("[DEBUG] Stopping the https event service...")
+		close(httpsErrChan)
+	}()
+
+	select {
+	case e := <-httpErrChan:
+		log.Panic("[ERROR] HTTP server error: ", e)
+	case e := <-httpsErrChan:
+		log.Panic("[ERROR] HTTPS server error: ", e)
+	}
 }
